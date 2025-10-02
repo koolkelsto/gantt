@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Frappe Gantt Editor</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css"
+  />
+  <style>
+    :root {
+      color-scheme: light;
+      font-size: 16px;
+    }
+
+    body {
+      margin: 0;
+      padding: 1.5rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7f8fb;
+      color: #101828;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 1.75rem;
+      font-weight: 600;
+    }
+
+    #gantt {
+      margin-top: 1rem;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.2);
+    }
+
+    #gantt .bar-progress {
+      display: none !important;
+    }
+
+    .group-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0.75rem 0 0;
+    }
+
+    .group-legend.hidden {
+      display: none;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      background: #ffffff;
+      font-size: 0.82rem;
+      color: #334155;
+    }
+
+    .legend-item.selected {
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+
+    .legend-swatch {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.18);
+    }
+
+    .filter-bar {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+
+    .filter-bar label {
+      font-weight: 500;
+    }
+
+    .filter-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .filter-controls select {
+      min-width: 180px;
+      min-height: 112px;
+      padding: 0.4rem;
+      border-radius: 8px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      background: #ffffff;
+      font-size: 0.9rem;
+    }
+
+    .filter-controls button {
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      background: #ffffff;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .filter-controls button:hover {
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar button {
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .toolbar button:hover {
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      width: min(420px, calc(100vw - 2rem));
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 22px 48px -18px rgba(15, 23, 42, 0.45);
+      position: relative;
+    }
+
+    .modal h2 {
+      margin: 0 0 1rem;
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .modal form {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .form-field {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .form-field label {
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      padding: 0.55rem 0.7rem;
+      border-radius: 9px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
+      font-size: 0.95rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: #475467;
+      line-height: 1.4;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .actions button {
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .actions .ghost {
+      background: #ffffff;
+      border-color: rgba(15, 23, 42, 0.16);
+      color: #0f172a;
+    }
+
+    .actions .ghost:hover {
+      border-color: #1d4ed8;
+      color: #1d4ed8;
+    }
+
+    .actions .ghost.hidden {
+      display: none;
+    }
+
+    .actions .ghost.danger {
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #b91c1c;
+    }
+
+    .actions .ghost.danger:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .actions .primary {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .actions .primary:hover {
+      background: #1d4ed8;
+    }
+
+    .available-ids {
+      background: #f1f5f9;
+      border-radius: 10px;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .inline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #475467;
+    }
+  </style>
+</head>
+<body>
+  <h1>Interactive Project Gantt</h1>
+  <p class="inline">
+    Click a task bar to edit its name, duration, or dependencies. Changes refresh the chart immediately.
+  </p>
+  <div class="toolbar">
+    <button type="button" id="add-task">Add Task</button>
+    <button type="button" id="add-group">Add Group</button>
+    <button type="button" id="go-today">Today</button>
+    <button data-view="Day">Day View</button>
+    <button data-view="Week">Week View</button>
+    <button data-view="Month">Month View</button>
+  </div>
+  <div class="filter-bar">
+    <label for="group-filter">Visible groups</label>
+    <div class="filter-controls">
+      <select id="group-filter" multiple aria-label="Select groups to show"></select>
+      <button type="button" id="group-filter-reset">Reset</button>
+    </div>
+  </div>
+  <div id="group-legend" class="group-legend hidden" aria-hidden="true"></div>
+  <div id="gantt"></div>
+
+  <div class="modal-backdrop" id="editor-backdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h2>Edit Task</h2>
+      <form id="task-form">
+        <input type="hidden" id="task-id" />
+        <div class="form-field">
+          <label for="task-name">Task name</label>
+          <input type="text" id="task-name" name="name" required />
+        </div>
+        <div class="form-field">
+          <label for="task-duration">Duration (days)</label>
+          <input
+            type="number"
+            id="task-duration"
+            name="duration"
+            min="1"
+            step="1"
+            required
+          />
+        </div>
+        <div class="form-field">
+          <label for="task-dependencies">Dependencies</label>
+          <input
+            type="text"
+            id="task-dependencies"
+            name="dependencies"
+            placeholder="Comma-separated task IDs"
+          />
+          <p class="hint">
+            Use the IDs listed below. Leave blank if the task has no dependencies.
+          </p>
+        </div>
+        <div class="form-field">
+          <label for="task-group-select">Group</label>
+          <select id="task-group-select" name="group">
+            <option value="">Unassigned</option>
+          </select>
+          <p class="hint">Pick a group to inherit its color.</p>
+        </div>
+        <p class="hint" id="task-start-info"></p>
+        <div class="available-ids" id="available-ids"></div>
+        <div class="actions">
+          <button type="button" class="ghost" id="cancel-edit">Cancel</button>
+          <button type="submit" class="primary">Save</button>
+          <button type="button" class="ghost danger" id="delete-task">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="group-backdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h2 id="group-modal-title">Add Group</h2>
+      <form id="group-form">
+        <input type="hidden" id="group-id" />
+        <div class="form-field">
+          <label for="group-name">Group name</label>
+          <input type="text" id="group-name" name="name" required />
+        </div>
+        <div class="form-field">
+          <label for="group-color">Group color</label>
+          <input type="color" id="group-color" name="color" value="#7c3aed" />
+          <p class="hint">All tasks assigned to this group inherit this color.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="ghost" id="group-cancel">Cancel</button>
+          <button type="submit" class="primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+  <script>
+    const DEFAULT_BAR_COLOR = "#94a3b8";
+    const colorPalette = [
+      "#7c3aed",
+      "#22c55e",
+      "#f97316",
+      "#0ea5e9",
+      "#a855f7",
+      "#f43f5e",
+      "#14b8a6",
+      "#facc15",
+      "#ec4899",
+      "#ef4444",
+    ];
+
+    const initialGroups = [
+      { id: "initiation", name: "Initiation", color: "#7c3aed" },
+      { id: "planning", name: "Planning", color: "#22c55e" },
+      { id: "execution", name: "Execution", color: "#f97316" },
+    ];
+
+    const initialTasks = [
+      {
+        id: "kickoff",
+        name: "Kickoff",
+        start: "2024-07-01",
+        end: "2024-07-02",
+        dependencies: "",
+        groupId: "initiation",
+      },
+      {
+        id: "plan",
+        name: "Planning",
+        start: "2024-07-02",
+        end: "2024-07-05",
+        dependencies: "kickoff",
+        groupId: "planning",
+      },
+      {
+        id: "design",
+        name: "Design",
+        start: "2024-07-06",
+        end: "2024-07-09",
+        dependencies: "plan",
+        groupId: "planning",
+      },
+      {
+        id: "build",
+        name: "Build",
+        start: "2024-07-10",
+        end: "2024-07-17",
+        dependencies: "design",
+        groupId: "execution",
+      },
+    ];
+
+let groups = initialGroups.map((group) => ({ ...group }));
+let tasks = initialTasks.map((task) => ({ ...task }));
+
+let nextPaletteIndex = groups.length % colorPalette.length;
+
+    const form = document.getElementById("task-form");
+    const backdrop = document.getElementById("editor-backdrop");
+    const cancelBtn = document.getElementById("cancel-edit");
+    const deleteBtn = document.getElementById("delete-task");
+    const availableIds = document.getElementById("available-ids");
+    const addTaskBtn = document.getElementById("add-task");
+    const addGroupBtn = document.getElementById("add-group");
+    const goTodayBtn = document.getElementById("go-today");
+    const startInfo = document.getElementById("task-start-info");
+    const legendElement = document.getElementById("group-legend");
+    const groupSelect = document.getElementById("task-group-select");
+    const groupFilter = document.getElementById("group-filter");
+    const groupFilterReset = document.getElementById("group-filter-reset");
+
+    const groupBackdrop = document.getElementById("group-backdrop");
+    const groupForm = document.getElementById("group-form");
+    const groupModalTitle = document.getElementById("group-modal-title");
+    const groupCancelBtn = document.getElementById("group-cancel");
+    const groupNameInput = document.getElementById("group-name");
+    const groupColorInput = document.getElementById("group-color");
+
+    let activeTaskId = null;
+    let activeTaskIndex = null;
+    let isCreatingTask = false;
+    let newTaskStart = null;
+
+    let editingGroupId = null;
+    let isCreatingGroup = false;
+    let gantt = null;
+    let suppressDateChange = false;
+
+    const UNGROUPED_KEY = "__ungrouped";
+    let selectedGroupIds = new Set([
+      UNGROUPED_KEY,
+      ...groups.map((group) => group.id),
+    ]);
+
+    const normalizeDate = (input) => {
+      if (input instanceof Date) {
+        return new Date(input.getFullYear(), input.getMonth(), input.getDate());
+      }
+
+      if (typeof input === "string") {
+        const isoMatch = input.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (isoMatch) {
+          const [, year, month, day] = isoMatch;
+          return new Date(
+            Number.parseInt(year, 10),
+            Number.parseInt(month, 10) - 1,
+            Number.parseInt(day, 10)
+          );
+        }
+      }
+
+      const parsed = new Date(input);
+      if (Number.isNaN(parsed.getTime())) {
+        return new Date(NaN);
+      }
+      return new Date(
+        parsed.getFullYear(),
+        parsed.getMonth(),
+        parsed.getDate()
+      );
+    };
+
+    const formatDate = (input) => {
+      const date = normalizeDate(input);
+      if (Number.isNaN(date.getTime())) {
+        const today = new Date();
+        const fallbackMonth = String(today.getMonth() + 1).padStart(2, "0");
+        const fallbackDay = String(today.getDate()).padStart(2, "0");
+        return `${today.getFullYear()}-${fallbackMonth}-${fallbackDay}`;
+      }
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    const daysBetweenInclusive = (start, end) => {
+      const startDate = normalizeDate(start);
+      const endDate = normalizeDate(end);
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return 1;
+      }
+      const msInDay = 24 * 60 * 60 * 1000;
+      return Math.max(1, Math.round((endDate - startDate) / msInDay) + 1);
+    };
+
+    const addDays = (start, days) => {
+      const base = normalizeDate(start);
+      if (Number.isNaN(base.getTime())) {
+        const fallback = normalizeDate(new Date());
+        fallback.setDate(fallback.getDate() + days);
+        return fallback;
+      }
+      const clone = new Date(base.getTime());
+      clone.setDate(clone.getDate() + days);
+      return new Date(
+        clone.getFullYear(),
+        clone.getMonth(),
+        clone.getDate()
+      );
+    };
+
+    const toUtcDayNumber = (value) => {
+      const date = normalizeDate(value);
+      if (Number.isNaN(date.getTime())) {
+        return Number.NaN;
+      }
+      const msInDay = 24 * 60 * 60 * 1000;
+      return Math.floor(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / msInDay
+      );
+    };
+
+    tasks = tasks.map((task) => ({
+      ...task,
+      duration: task.duration || daysBetweenInclusive(task.start, task.end),
+    }));
+
+    const toDateString = (value) => {
+      if (!value) {
+        return formatDate(new Date());
+      }
+      const normalized = normalizeDate(value);
+      return Number.isNaN(normalized.getTime())
+        ? formatDate(new Date())
+        : formatDate(normalized);
+    };
+
+    const displayDateFormatter = new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+
+    const formatDisplayDate = (value) => {
+      const date = normalizeDate(value);
+      if (Number.isNaN(date.getTime())) {
+        return String(value ?? "");
+      }
+      return displayDateFormatter.format(date);
+    };
+
+    const listTaskIds = () => {
+      if (!tasks.length) {
+        availableIds.textContent = "No tasks yet.";
+        return;
+      }
+      availableIds.innerHTML = tasks
+        .map((task) => `${task.name} → <strong>${task.id}</strong>`)
+        .join("<br>");
+    };
+
+    const getUniqueTaskId = (baseId, currentId = null) => {
+      const sanitizedBase = baseId || `task-${tasks.length + 1}`;
+      let candidate = sanitizedBase;
+      let suffix = 1;
+      while (
+        tasks.some((task) => task.id === candidate && task.id !== currentId)
+      ) {
+        candidate = `${sanitizedBase}-${suffix}`;
+        suffix += 1;
+      }
+      return candidate;
+    };
+
+    const normalizeColor = (value) => {
+      if (!value) return null;
+      const trimmed = String(value).trim();
+      const hexMatch = trimmed.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+      if (!hexMatch) return null;
+      let hex = hexMatch[1];
+      if (hex.length === 3) {
+        hex = hex
+          .split("")
+          .map((char) => char + char)
+          .join("");
+      }
+      return `#${hex.toLowerCase()}`;
+    };
+
+    const toDependencyList = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) {
+        return value.map((dep) => String(dep).trim()).filter(Boolean);
+      }
+      if (typeof value === "string") {
+        return value
+          .split(",")
+          .map((dep) => dep.trim())
+          .filter(Boolean);
+      }
+      return [String(value).trim()].filter(Boolean);
+    };
+
+    const escapeHtml = (value) =>
+      String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    const slugify = (text) =>
+      text
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
+
+    const ensureUniqueGroupSlug = (base, currentId = null) => {
+      const sanitizedBase = base || `group-${groups.length + 1}`;
+      let candidate = sanitizedBase;
+      let suffix = 1;
+      while (
+        groups.some((group) => group.id === candidate && group.id !== currentId)
+      ) {
+        candidate = `${sanitizedBase}-${suffix}`;
+        suffix += 1;
+      }
+      return candidate;
+    };
+
+    const getDefaultGroupColor = () =>
+      colorPalette[nextPaletteIndex % colorPalette.length] || DEFAULT_BAR_COLOR;
+
+    const buildGroupMap = () => {
+      const map = new Map();
+      groups.forEach((group) => {
+        map.set(group.id, group);
+      });
+      return map;
+    };
+
+    const autoScheduleTasks = () => {
+      const groupMap = buildGroupMap();
+      const taskMap = new Map();
+      tasks.forEach((task) => {
+        taskMap.set(task.id, task);
+      });
+
+      const scheduleCache = new Map();
+      const visiting = new Set();
+
+      const computeSchedule = (task) => {
+        if (!task) {
+          return {
+            start: normalizeDate(new Date()),
+            end: normalizeDate(new Date()),
+            duration: 1,
+          };
+        }
+
+        if (scheduleCache.has(task.id)) {
+          return scheduleCache.get(task.id);
+        }
+
+        if (visiting.has(task.id)) {
+          const fallbackStart = normalizeDate(task.start);
+          const safeStart = Number.isNaN(fallbackStart.getTime())
+            ? normalizeDate(new Date())
+            : fallbackStart;
+          const duration = task.duration || 1;
+          const end = addDays(safeStart, duration - 1);
+          return { start: safeStart, end, duration };
+        }
+
+        visiting.add(task.id);
+
+        const durationRaw = task.duration || daysBetweenInclusive(task.start, task.end);
+        const duration = Number.isFinite(durationRaw) && durationRaw > 0 ? durationRaw : 1;
+
+        let candidateStart = normalizeDate(task.start);
+        if (Number.isNaN(candidateStart.getTime())) {
+          candidateStart = normalizeDate(new Date());
+        }
+
+        const dependencies = toDependencyList(task.dependencies);
+        dependencies.forEach((depId) => {
+          const depTask = taskMap.get(depId);
+          const depSchedule = computeSchedule(depTask);
+          const nextStart = addDays(depSchedule.end, 1);
+          if (nextStart > candidateStart) {
+            candidateStart = nextStart;
+          }
+        });
+
+        visiting.delete(task.id);
+
+        const endDate = addDays(candidateStart, duration - 1);
+        const schedule = { start: candidateStart, end: endDate, duration };
+        scheduleCache.set(task.id, schedule);
+        return schedule;
+      };
+
+      tasks = tasks.map((task) => {
+        const schedule = computeSchedule(task);
+        const group = task.groupId ? groupMap.get(task.groupId) : null;
+        return {
+          ...task,
+          start: formatDate(schedule.start),
+          end: formatDate(schedule.end),
+          duration: schedule.duration,
+          dependencies: toDependencyList(task.dependencies).join(","),
+          groupId: group ? group.id : null,
+        };
+      });
+    };
+
+    const applyGroupMetadata = () => {
+      const groupMap = buildGroupMap();
+      tasks = tasks.map((task) => {
+        const group = task.groupId ? groupMap.get(task.groupId) : null;
+        const color = group ? group.color : DEFAULT_BAR_COLOR;
+        return {
+          ...task,
+          groupId: group ? group.id : null,
+          color,
+          custom_class: group ? `group-${group.id}` : "",
+        };
+      });
+    };
+
+    const renderGroupLegend = () => {
+      if (!legendElement) return;
+      if (!groups.length) {
+        legendElement.innerHTML = "";
+        legendElement.classList.add("hidden");
+        legendElement.setAttribute("aria-hidden", "true");
+        return;
+      }
+
+      const items = groups
+        .map((group) => {
+          const selected = selectedGroupIds.has(group.id);
+          return `<button type="button" class="legend-item${
+            selected ? " selected" : ""
+          }" data-group-id="${group.id}" title="Double-click to edit ${escapeHtml(
+            group.name
+          )}"><span class="legend-swatch" style="background:${group.color}"></span>${escapeHtml(
+            group.name
+          )}</button>`;
+        })
+        .join("");
+
+      legendElement.innerHTML = items;
+      legendElement.classList.remove("hidden");
+      legendElement.setAttribute("aria-hidden", "false");
+    };
+
+    const paintBars = () => {
+      window.requestAnimationFrame(() => {
+        document.querySelectorAll(".bar-wrapper").forEach((wrapper) => {
+          const taskId = wrapper.dataset?.id;
+          if (!taskId) return;
+          const task = tasks.find((candidate) => candidate.id === taskId);
+          if (!task) return;
+          const color = task.color || DEFAULT_BAR_COLOR;
+          const bar = wrapper.querySelector(".bar");
+          if (bar) {
+            bar.style.fill = color;
+            bar.style.stroke = color;
+          }
+          const label = wrapper.querySelector(".bar-label");
+          if (label) {
+            label.style.fill = "#0f172a";
+          }
+          const tooltip = `${task.name}\n${formatDisplayDate(task.start)} → ${formatDisplayDate(task.end)}`;
+          wrapper.setAttribute("title", tooltip);
+        });
+      });
+    };
+
+    const scrollToDate = (target) => {
+      if (!gantt || !gantt.$container) return;
+      const targetDate = normalizeDate(target);
+      if (Number.isNaN(targetDate.getTime())) return;
+      const startDate = normalizeDate(gantt.gantt_start || new Date());
+      const columnWidth = gantt.options?.column_width || 38;
+      const msInDay = 24 * 60 * 60 * 1000;
+      const diffDays = (targetDate - startDate) / msInDay;
+      const rawOffset = diffDays * columnWidth;
+      const container = gantt.$container;
+      const centeredOffset = Math.max(0, rawOffset - container.clientWidth / 2);
+      container.scrollTo({ left: centeredOffset, behavior: "smooth" });
+    };
+
+    const refreshAll = () => {
+      autoScheduleTasks();
+      applyGroupMetadata();
+      populateGroupFilter();
+      const visibleTasks = getVisibleTasksForGantt();
+      if (gantt) {
+        gantt.refresh(visibleTasks);
+      }
+      renderGroupLegend();
+      paintBars();
+      if (groupSelect && backdrop.classList.contains("active")) {
+        const currentSelection = groupSelect.value || null;
+        populateGroupSelect(currentSelection);
+      }
+    };
+
+    const updateDependencies = (oldId, newId) => {
+      if (oldId === newId) return;
+      tasks = tasks.map((task) => {
+        const deps = toDependencyList(task.dependencies).map((dep) =>
+          dep === oldId ? newId : dep
+        );
+        return { ...task, dependencies: deps.join(",") };
+      });
+    };
+
+    const deleteActiveTask = () => {
+      if (
+        deleteBtn &&
+        !deleteBtn.disabled &&
+        activeTaskIndex !== null &&
+        activeTaskIndex > -1 &&
+        tasks[activeTaskIndex]
+      ) {
+        const task = tasks[activeTaskIndex];
+        const confirmed = window.confirm(
+          `Delete task "${task.name}" (starts ${formatDisplayDate(
+            task.start
+          )}) and remove references to it?`
+        );
+        if (!confirmed) return;
+
+        const deletedId = task.id;
+        tasks.splice(activeTaskIndex, 1);
+
+        tasks = tasks.map((candidate) => {
+          const deps = toDependencyList(candidate.dependencies).filter(
+            (dep) => dep !== deletedId
+          );
+          return { ...candidate, dependencies: deps.join(",") };
+        });
+
+        closeTaskEditor();
+        refreshAll();
+      }
+    };
+
+    const populateGroupSelect = (selectedId = null) => {
+      if (!groupSelect) return;
+      const options = [
+        '<option value="">Unassigned</option>',
+        ...groups.map(
+          (group) =>
+            `<option value="${group.id}">${escapeHtml(group.name)}</option>`
+        ),
+      ];
+      groupSelect.innerHTML = options.join("");
+
+      if (selectedId && groups.some((group) => group.id === selectedId)) {
+        groupSelect.value = selectedId;
+      } else if (selectedId === "" || selectedId === null) {
+        groupSelect.value = "";
+      } else if (groups.length) {
+        groupSelect.value = groups[0].id;
+      } else {
+        groupSelect.value = "";
+      }
+    };
+
+    const selectAllGroups = () => {
+      selectedGroupIds = new Set([
+        UNGROUPED_KEY,
+        ...groups.map((group) => group.id),
+      ]);
+    };
+
+    const populateGroupFilter = () => {
+      if (!groupFilter) return;
+
+      const existingIds = new Set(groups.map((group) => group.id));
+      const normalizedSelection = new Set();
+      selectedGroupIds.forEach((id) => {
+        if (id === UNGROUPED_KEY || existingIds.has(id)) {
+          normalizedSelection.add(id);
+        }
+      });
+
+      if (!normalizedSelection.size) {
+        selectAllGroups();
+      } else {
+        selectedGroupIds = normalizedSelection;
+      }
+
+      const options = [
+        `<option value="${UNGROUPED_KEY}">Unassigned</option>`,
+        ...groups.map(
+          (group) =>
+            `<option value="${group.id}">${escapeHtml(group.name)}</option>`
+        ),
+      ];
+      groupFilter.innerHTML = options.join("");
+
+      Array.from(groupFilter.options).forEach((option) => {
+        option.selected = selectedGroupIds.has(option.value);
+      });
+    };
+
+    const getVisibleTasks = () => {
+      const effectiveSelection = selectedGroupIds.size
+        ? selectedGroupIds
+        : new Set([UNGROUPED_KEY, ...groups.map((group) => group.id)]);
+
+      const hasAllGroups = groups.every((group) => effectiveSelection.has(group.id));
+      const includeUngrouped = effectiveSelection.has(UNGROUPED_KEY);
+
+      if (hasAllGroups && includeUngrouped) {
+        return tasks;
+      }
+
+      return tasks.filter((task) => {
+        if (!task.groupId) {
+          return includeUngrouped;
+        }
+        return effectiveSelection.has(task.groupId);
+      });
+    };
+
+    const getVisibleTasksForGantt = () =>
+      getVisibleTasks().map((task) => ({
+        ...task,
+        start: formatDate(task.start),
+        end: formatDate(task.end),
+        progress: Number.isFinite(task.progress) ? task.progress : 0,
+      }));
+
+    const buildDependentsMap = () => {
+      const dependentsMap = new Map();
+      tasks.forEach((task) => {
+        toDependencyList(task.dependencies).forEach((dep) => {
+          if (!dependentsMap.has(dep)) {
+            dependentsMap.set(dep, []);
+          }
+          dependentsMap.get(dep).push(task.id);
+        });
+      });
+      return dependentsMap;
+    };
+
+    const shiftTaskDates = (task, deltaDays) => {
+      const startDate = normalizeDate(task.start);
+      const endDate = normalizeDate(task.end);
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return task;
+      }
+      const newStart = addDays(startDate, deltaDays);
+      const duration = daysBetweenInclusive(startDate, endDate);
+      const newEnd = addDays(newStart, duration - 1);
+      return {
+        ...task,
+        start: formatDate(newStart),
+        end: formatDate(newEnd),
+        duration,
+      };
+    };
+
+    const shiftDescendants = (rootId, deltaDays) => {
+      if (!deltaDays) return;
+      const dependentsMap = buildDependentsMap();
+      const visited = new Set([rootId]);
+      const queue = [...(dependentsMap.get(rootId) || [])];
+      while (queue.length) {
+        const currentId = queue.shift();
+        if (visited.has(currentId)) continue;
+        visited.add(currentId);
+        const idx = tasks.findIndex((task) => task.id === currentId);
+        if (idx === -1) continue;
+        const originalTask = tasks[idx];
+        const updatedTask = shiftTaskDates(originalTask, deltaDays);
+        const duration =
+          updatedTask.duration || daysBetweenInclusive(updatedTask.start, updatedTask.end);
+        tasks[idx] = {
+          ...updatedTask,
+          duration,
+        };
+        const next = dependentsMap.get(currentId);
+        if (next && next.length) {
+          queue.push(...next);
+        }
+      }
+    };
+
+    const shiftAncestors = (rootId, deltaDays) => {
+      if (!deltaDays || deltaDays > 0) return;
+      const taskIndexMap = new Map();
+      tasks.forEach((task, index) => {
+        taskIndexMap.set(task.id, index);
+      });
+
+      const visited = new Set();
+      const stack = [rootId];
+
+      while (stack.length) {
+        const currentId = stack.pop();
+        const currentIdx = taskIndexMap.get(currentId);
+        if (currentIdx === undefined) continue;
+        const currentTask = tasks[currentIdx];
+        const dependencies = toDependencyList(currentTask.dependencies);
+        dependencies.forEach((depId) => {
+          if (visited.has(depId)) return;
+          const depIdx = taskIndexMap.get(depId);
+          if (depIdx === undefined) return;
+          visited.add(depId);
+          const depTask = tasks[depIdx];
+          const shiftedTask = shiftTaskDates(depTask, deltaDays);
+          const duration =
+            shiftedTask.duration ||
+            daysBetweenInclusive(shiftedTask.start, shiftedTask.end);
+          tasks[depIdx] = {
+            ...shiftedTask,
+            duration,
+          };
+          stack.push(depId);
+        });
+      }
+    };
+
+    const openTaskEditor = (task, options = {}) => {
+      const { mode = "edit", startDate = null } = options;
+      isCreatingTask = mode === "create";
+      activeTaskIndex =
+        !isCreatingTask && typeof task._index === "number" && task._index > -1
+          ? task._index
+          : !isCreatingTask
+          ? tasks.findIndex((candidate) => candidate.id === task.id)
+          : null;
+
+      const referenceTask =
+        !isCreatingTask && activeTaskIndex !== null && activeTaskIndex > -1
+          ? tasks[activeTaskIndex]
+          : null;
+
+      activeTaskId = isCreatingTask ? null : referenceTask?.id || task.id || null;
+
+      const baseStartDate = normalizeDate(
+        isCreatingTask ? startDate || new Date() : referenceTask?.start || task.start
+      );
+
+      const baseEndDate = normalizeDate(
+        isCreatingTask
+          ? addDays(baseStartDate, (task.duration || 1) - 1)
+          : referenceTask?.end || task.end
+      );
+
+      newTaskStart = isCreatingTask ? formatDate(baseStartDate) : null;
+
+      const startValue = formatDate(baseStartDate);
+      const endValue = formatDate(baseEndDate);
+
+      const nameValue = referenceTask?.name ?? task.name ?? "";
+      const dependencyValue =
+        referenceTask?.dependencies ??
+        toDependencyList(task.dependencies).join(",");
+      const groupId = referenceTask?.groupId ?? task.groupId ?? groups[0]?.id ?? "";
+
+      document.getElementById("task-id").value = activeTaskId || "";
+      document.getElementById("task-name").value = nameValue;
+      document.getElementById("task-duration").value = daysBetweenInclusive(
+        startValue,
+        endValue
+      );
+      document.getElementById("task-dependencies").value = dependencyValue;
+      populateGroupSelect(groupId || "");
+      if (deleteBtn) {
+        const shouldShowDelete = Boolean(!isCreatingTask && activeTaskIndex !== null && activeTaskIndex > -1);
+        deleteBtn.classList.toggle("hidden", !shouldShowDelete);
+        deleteBtn.disabled = !shouldShowDelete;
+      }
+
+      const displayStart = formatDisplayDate(baseStartDate);
+      const displayEnd = formatDisplayDate(baseEndDate);
+      const durationDays = daysBetweenInclusive(baseStartDate, baseEndDate);
+      const daySuffix = durationDays === 1 ? "day" : "days";
+      const startLabel = isCreatingTask
+        ? `New task will start on ${displayStart} and end on ${displayEnd}`
+        : `Starts on ${displayStart} and ends on ${displayEnd}`;
+      startInfo.textContent = `${startLabel} (${durationDays} ${daySuffix}).`;
+
+      listTaskIds();
+      backdrop.classList.add("active");
+    };
+
+    const closeTaskEditor = () => {
+      backdrop.classList.remove("active");
+      form.reset();
+      activeTaskId = null;
+      activeTaskIndex = null;
+      isCreatingTask = false;
+      newTaskStart = null;
+      startInfo.textContent = "";
+      availableIds.textContent = "";
+      if (groupSelect) {
+        groupSelect.innerHTML = '<option value="">Unassigned</option>';
+      }
+      if (deleteBtn) {
+        deleteBtn.classList.add("hidden");
+        deleteBtn.disabled = true;
+      }
+    };
+
+    const openGroupModal = (mode, group = null) => {
+      isCreatingGroup = mode === "create";
+      editingGroupId = group ? group.id : null;
+      groupModalTitle.textContent = isCreatingGroup ? "Add Group" : "Edit Group";
+      groupNameInput.value = group ? group.name : "";
+      groupColorInput.value = group ? group.color : getDefaultGroupColor();
+      groupBackdrop.classList.add("active");
+      groupNameInput.focus();
+    };
+
+    const closeGroupModal = () => {
+      groupBackdrop.classList.remove("active");
+      groupForm.reset();
+      editingGroupId = null;
+      isCreatingGroup = false;
+      groupColorInput.value = getDefaultGroupColor();
+    };
+
+    autoScheduleTasks();
+    applyGroupMetadata();
+    populateGroupFilter();
+
+    gantt = new Gantt("#gantt", getVisibleTasksForGantt(), {
+      view_mode: "Week",
+      date_format: "YYYY-MM-DD",
+      on_click: (task) => openTaskEditor(task),
+      on_date_change: (task, start, end) => {
+        if (suppressDateChange) return;
+        const idx = tasks.findIndex((candidate) => candidate.id === task.id);
+        if (idx === -1) return;
+        suppressDateChange = true;
+        try {
+          const existingTask = tasks[idx];
+          const oldStartDate = normalizeDate(existingTask.start);
+          const oldEndDate = normalizeDate(existingTask.end);
+          const oldDuration =
+            existingTask.duration || daysBetweenInclusive(oldStartDate, oldEndDate);
+
+          const newStartDate = normalizeDate(start);
+          const newEndDate = normalizeDate(end);
+          const newStartDay = toUtcDayNumber(newStartDate);
+          const oldStartDay = toUtcDayNumber(oldStartDate);
+          const newEndDay = toUtcDayNumber(newEndDate);
+          const oldEndDay = toUtcDayNumber(oldEndDate);
+
+          const startDelta =
+            Number.isNaN(newStartDay) || Number.isNaN(oldStartDay)
+              ? 0
+              : newStartDay - oldStartDay;
+          const endDelta =
+            Number.isNaN(newEndDay) || Number.isNaN(oldEndDay)
+              ? 0
+              : newEndDay - oldEndDay;
+
+          let updatedStart = oldStartDate;
+          let updatedEnd = oldEndDate;
+          let updatedDuration = oldDuration;
+
+          if (startDelta === 0 && endDelta === 0) {
+            return;
+          } else if (startDelta !== 0 && endDelta === 0) {
+            updatedStart = addDays(oldStartDate, startDelta);
+            updatedEnd = oldEndDate;
+            updatedDuration = Math.max(
+              1,
+              daysBetweenInclusive(updatedStart, updatedEnd)
+            );
+          } else if (startDelta === 0 && endDelta !== 0) {
+            updatedStart = oldStartDate;
+            updatedEnd = addDays(oldEndDate, endDelta);
+            updatedDuration = Math.max(
+              1,
+              daysBetweenInclusive(updatedStart, updatedEnd)
+            );
+          } else if (startDelta === endDelta) {
+            updatedStart = addDays(oldStartDate, startDelta);
+            updatedEnd = addDays(oldEndDate, endDelta);
+            updatedDuration = oldDuration;
+          } else {
+            updatedStart = newStartDate;
+            updatedEnd = newEndDate;
+            updatedDuration = Math.max(
+              1,
+              daysBetweenInclusive(updatedStart, updatedEnd)
+            );
+          }
+
+          const startDeltaApplied =
+            toUtcDayNumber(updatedStart) - toUtcDayNumber(oldStartDate);
+          const endDeltaApplied =
+            toUtcDayNumber(updatedEnd) - toUtcDayNumber(oldEndDate);
+
+          console.log("Drag update:", {
+            taskId: task.id,
+            taskName: existingTask.name,
+            oldStart: formatDate(oldStartDate),
+            oldEnd: formatDate(oldEndDate),
+            newStart: formatDate(updatedStart),
+            newEnd: formatDate(updatedEnd),
+            startDelta,
+            endDelta,
+            startDeltaApplied,
+            endDeltaApplied,
+            oldDuration,
+            updatedDuration,
+            rawTaskStart: task._start || task.start,
+            rawTaskEnd: task._end || task.end,
+          });
+
+          tasks[idx] = {
+            ...existingTask,
+            start: formatDate(updatedStart),
+            end: formatDate(updatedEnd),
+            duration: updatedDuration,
+          };
+
+          if (endDeltaApplied !== 0) {
+            shiftDescendants(task.id, endDeltaApplied);
+          }
+          if (startDeltaApplied !== 0) {
+            shiftAncestors(task.id, startDeltaApplied);
+          }
+
+          refreshAll();
+        } finally {
+          suppressDateChange = false;
+        }
+      },
+      custom_popup_html: () => "",
+    });
+
+    renderGroupLegend();
+    paintBars();
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const name = document.getElementById("task-name").value.trim();
+      const duration = Number.parseInt(
+        document.getElementById("task-duration").value,
+        10
+      );
+      const dependencies = document
+        .getElementById("task-dependencies")
+        .value.split(",")
+        .map((dep) => dep.trim())
+        .filter(Boolean)
+        .join(",");
+      const selectedGroupId = groupSelect ? groupSelect.value || null : null;
+
+      const originalIdInput = document.getElementById("task-id").value.trim();
+      const effectiveId = isCreatingTask
+        ? null
+        : activeTaskId || originalIdInput || null;
+
+      if (!name || Number.isNaN(duration) || duration < 1) {
+        alert("Please provide a task name and a duration of at least 1 day.");
+        return;
+      }
+
+      if (!isCreatingTask && !effectiveId) {
+        alert("Unable to determine which task to update. Please reopen the editor and try again.");
+        closeTaskEditor();
+        return;
+      }
+
+      if (isCreatingTask) {
+        const baseId = slugify(name) || `task-${tasks.length + 1}`;
+        const newId = getUniqueTaskId(baseId);
+        const startValue = newTaskStart || formatDate(new Date());
+        let startDate = normalizeDate(startValue);
+        if (Number.isNaN(startDate.getTime())) {
+          startDate = normalizeDate(new Date());
+        }
+        const newEndDate = addDays(startDate, duration - 1);
+
+        tasks.push({
+          id: newId,
+          name,
+          start: formatDate(startDate),
+          end: formatDate(newEndDate),
+          dependencies,
+          groupId: selectedGroupId,
+          duration,
+        });
+      } else {
+        const idx =
+          typeof activeTaskIndex === "number" && activeTaskIndex > -1
+            ? activeTaskIndex
+            : tasks.findIndex((task) => task.id === effectiveId);
+        if (idx === -1) {
+          alert("Could not find the task to update. Please try again.");
+          closeTaskEditor();
+          return;
+        }
+
+        const task = tasks[idx];
+        let startDate = normalizeDate(task.start);
+        if (Number.isNaN(startDate.getTime())) {
+          startDate = normalizeDate(new Date());
+        }
+        const newEndDate = addDays(startDate, duration - 1);
+        const baseId = slugify(name) || task.id;
+        const newId = getUniqueTaskId(baseId, task.id);
+
+        updateDependencies(task.id, newId);
+
+        tasks[idx] = {
+          ...task,
+          id: newId,
+          name,
+          end: formatDate(newEndDate),
+          dependencies,
+          duration,
+          groupId: selectedGroupId,
+        };
+      }
+
+      refreshAll();
+      closeTaskEditor();
+    });
+
+    cancelBtn.addEventListener("click", () => closeTaskEditor());
+    backdrop.addEventListener("click", (event) => {
+      if (event.target === backdrop) {
+        closeTaskEditor();
+      }
+    });
+
+    document
+      .querySelectorAll(".toolbar button[data-view]")
+      .forEach((button) =>
+        button.addEventListener("click", () => {
+          gantt.change_view_mode(button.dataset.view);
+          paintBars();
+        })
+      );
+
+    if (goTodayBtn) {
+      goTodayBtn.addEventListener("click", () => {
+        const today = new Date();
+        scrollToDate(today);
+        paintBars();
+      });
+    }
+
+    const handleGroupFilterChange = () => {
+      if (!groupFilter) return;
+      const values = Array.from(groupFilter.selectedOptions).map(
+        (option) => option.value
+      );
+      if (!values.length || values.length === groupFilter.options.length) {
+        selectAllGroups();
+      } else {
+        selectedGroupIds = new Set(values);
+      }
+      refreshAll();
+    };
+
+    if (groupFilter) {
+      groupFilter.addEventListener("change", handleGroupFilterChange);
+      groupFilter.addEventListener("input", handleGroupFilterChange);
+    }
+
+    if (groupFilterReset) {
+      groupFilterReset.addEventListener("click", () => {
+        selectAllGroups();
+        populateGroupFilter();
+        refreshAll();
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", deleteActiveTask);
+    }
+
+    addTaskBtn.addEventListener("click", () => {
+      const todayDate = new Date();
+      const today = formatDate(todayDate);
+      const defaultGroupId = groups[0]?.id || null;
+
+      const defaultTask = {
+        id: "",
+        name: "",
+        start: today,
+        end: today,
+        dependencies: "",
+        groupId: defaultGroupId,
+        duration: 1,
+      };
+
+      openTaskEditor(defaultTask, { mode: "create", startDate: todayDate });
+    });
+
+    addGroupBtn.addEventListener("click", () => {
+      openGroupModal("create");
+    });
+
+    groupCancelBtn.addEventListener("click", () => closeGroupModal());
+    groupBackdrop.addEventListener("click", (event) => {
+      if (event.target === groupBackdrop) {
+        closeGroupModal();
+      }
+    });
+
+    legendElement.addEventListener("dblclick", (event) => {
+      const target = event.target.closest("[data-group-id]");
+      if (!target) return;
+      const group = groups.find((item) => item.id === target.dataset.groupId);
+      if (group) {
+        openGroupModal("edit", group);
+      }
+    });
+
+    groupForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const name = groupNameInput.value.trim();
+      const color = normalizeColor(groupColorInput.value) || getDefaultGroupColor();
+
+      if (!name) {
+        alert("Please provide a group name.");
+        return;
+      }
+
+      if (isCreatingGroup) {
+        const baseSlug = slugify(name) || `group-${groups.length + 1}`;
+        const id = ensureUniqueGroupSlug(baseSlug);
+        groups.push({ id, name, color });
+        nextPaletteIndex = (nextPaletteIndex + 1) % colorPalette.length;
+        selectedGroupIds.add(id);
+      } else {
+        const idx = groups.findIndex((group) => group.id === editingGroupId);
+        if (idx === -1) {
+          closeGroupModal();
+          return;
+        }
+
+        const baseSlug = slugify(name) || editingGroupId;
+        const newId = ensureUniqueGroupSlug(baseSlug, editingGroupId);
+        const oldId = groups[idx].id;
+
+        groups[idx] = { id: newId, name, color };
+
+        if (newId !== oldId) {
+          if (selectedGroupIds.has(oldId)) {
+            selectedGroupIds.delete(oldId);
+            selectedGroupIds.add(newId);
+          }
+          tasks = tasks.map((task) =>
+            task.groupId === oldId ? { ...task, groupId: newId } : task
+          );
+        }
+      }
+
+      closeGroupModal();
+      refreshAll();
+    });
+  </script>
+
+</body>
+</html>
